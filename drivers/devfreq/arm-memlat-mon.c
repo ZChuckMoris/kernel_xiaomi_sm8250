@@ -494,10 +494,8 @@ static int memlat_event_hotplug_coming_up(unsigned int cpu)
 	if (!cpu_grp)
 		return -ENODEV;
 	mutex_lock(&cpu_grp->mons_lock);
-	if (cpu_grp->num_active_mons) {
-		ret = memlat_hp_restart_events(cpu, true);
-		per_cpu(cpu_is_hp, cpu) = false;
-	}
+	ret = memlat_hp_restart_events(cpu, true);
+	per_cpu(cpu_is_hp, cpu) = false;
 	mutex_unlock(&cpu_grp->mons_lock);
 
 	return ret;
@@ -512,10 +510,8 @@ static int memlat_event_hotplug_going_down(unsigned int cpu)
 		return -ENODEV;
 	/* avoid race between cpu hotplug and update_counts */
 	mutex_lock(&cpu_grp->mons_lock);
-	if (cpu_grp->num_active_mons) {
-		per_cpu(cpu_is_hp, cpu) = true;
-		ret = memlat_hp_restart_events(cpu, false);
-	}
+	per_cpu(cpu_is_hp, cpu) = true;
+	ret = memlat_hp_restart_events(cpu, false);
 	mutex_unlock(&cpu_grp->mons_lock);
 
 	return ret;
@@ -679,7 +675,6 @@ static void stop_hwmon(struct memlat_hwmon *hw)
 		hp_idle_register_cnt--;
 		mutex_unlock(&notify_lock);
 	}
-	mutex_unlock(&cpu_grp->mons_lock);
 	mutex_lock(&notify_lock);
 	if (!hp_idle_register_cnt) {
 		cpuhp_remove_state_nocalls(CPUHP_AP_ONLINE_DYN);
@@ -690,6 +685,7 @@ static void stop_hwmon(struct memlat_hwmon *hw)
 		}
 	}
 	mutex_unlock(&notify_lock);
+	mutex_unlock(&cpu_grp->mons_lock);
 }
 
 /**
